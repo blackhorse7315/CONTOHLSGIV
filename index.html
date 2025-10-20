@@ -428,7 +428,7 @@
                 <!-- Seat Layout Configuration -->
                 <div>
                     <h2 class="text-lg font-semibold text-white mb-3 border-b border-gray-700 pb-2">Seat Layout Configuration (kg)</h2>
-                    <div class="bg-gray-800 p-4 rounded-lg space-y-4">
+                    <div id="seat-layout-container" class="bg-gray-800 p-4 rounded-lg space-y-4">
                         <!-- Cockpit -->
                         <div class="text-center text-xs text-gray-400 mb-2">-- COCKPIT --</div>
                         <div class="flex justify-around items-center">
@@ -913,30 +913,55 @@
         async function generateProfessionalPDF() {
             const pdfMessage = document.getElementById('pdf-message'); pdfMessage.classList.remove('hidden');
             const { jsPDF } = window.jspdf; const doc = new jsPDF();
-            doc.setFontSize(14); doc.setFont(undefined, 'bold'); doc.text('PT. TRANSWISATA PRIMA AVIATION', 105, 15, null, null, 'center'); doc.setFontSize(18); doc.text('Load Sheet Gulfstream IV SP SN1381', 105, 22, null, null, 'center'); doc.setFontSize(12); doc.setFont(undefined, 'normal'); doc.text(`Aircraft Registration: PK-TWY`, 105, 28, null, null, 'center'); doc.setFontSize(10); doc.text(`Date: ${new Date().toLocaleDateString('en-GB')}`, 105, 34, null, null, 'center');
-            doc.autoTable({ startY: 40, head: [['Route Information', '']], body: [['From', inputs.routeFrom.value], ['Destination', inputs.routeTo.value],], theme: 'grid', headStyles: { fillColor: [45, 55, 72] }, });
+            doc.setFontSize(14); doc.setFont(undefined, 'bold'); doc.text('PT. TRANSWISATA PRIMA AVIATION', 105, 15, null, null, 'center'); 
+            doc.setFontSize(18); doc.text('Load Sheet Gulfstream IV SP SN1381', 105, 22, null, null, 'center'); 
+            doc.setFontSize(12); doc.setFont(undefined, 'normal'); doc.text(`Aircraft Registration: PK-TWY`, 105, 28, null, null, 'center'); 
+            doc.setFontSize(10); doc.text(`Date: ${new Date().toLocaleDateString('en-GB')}`, 105, 34, null, null, 'center');
+            
+            // Add Doc No and Effective Date
+            doc.setFont(undefined, 'bold');
+            doc.text('Doc. No: F/TWA-OPS/002-01', 14, 40);
+            doc.text('Effective Date: 01 October 2025', 210 - 14, 40, { align: 'right' });
+            doc.setFont(undefined, 'normal');
+
+            doc.autoTable({ 
+                startY: 45, 
+                head: [['Route Information', '']], 
+                body: [['From', inputs.routeFrom.value], ['Destination', inputs.routeTo.value],], 
+                theme: 'grid', 
+                headStyles: { fillColor: [45, 55, 72] }, 
+            });
             doc.autoTable({ startY: doc.lastAutoTable.finalY + 10, head: [['Role', 'Name']], body: [['PIC', inputs.picName.value], ['Copilot', inputs.copilotName.value], ['Engineer', inputs.engineerName.value], ['Cabin Service', inputs.cabinServiceName.value], ['Total Person on Board (POB)', inputs.totalPob.value],], theme: 'grid', headStyles: { fillColor: [22, 163, 74] }, });
             let finalY = doc.lastAutoTable.finalY;
             const tripTime = `${inputs.tripTimeHours.value || 0} hr ${inputs.tripTimeMinutes.value || 0} min`; const alternateTime = `${inputs.tripToAlternateHours.value || 0} hr ${inputs.tripToAlternateMinutes.value || 0} min`;
             doc.autoTable({ startY: finalY + 10, head: [['Flight Calculation', 'Value']], body: [['Trip Time', tripTime], ['Trip to Alternate', alternateTime], ['Altitude', `${inputs.altitude.value} ft`], ['Airspeed', `${inputs.airspeed.value} kts`], ['Headwind', `${inputs.headwind.value} kts`], ['Fuel on Board', `${inputs.fuelOnBoard.value} lbs`], ['Maximum Range', `${outputs.maxRange.textContent} nm`],], theme: 'grid', headStyles: { fillColor: [45, 55, 72] }, }); finalY = doc.lastAutoTable.finalY;
             doc.autoTable({ startY: finalY + 10, head: [['Fuel Required', 'Value']], body: [['Fuel Consumption', `${inputs.fuelConsumption.value} lbs/hr`], ['Trip Fuel', `${outputs.fuelTripRequired.textContent} lbs`], ['Alternate Fuel', `${outputs.alternateFuel.textContent} lbs`], ['Final Reserve 30 min', `${outputs.reserveFuel.textContent} lbs`], ['Contingency (10%)', `${outputs.contingencyFuel.textContent} lbs`], ['Start & Taxi', `${outputs.startTaxiFuel.textContent} lbs`], ['TOTAL FUEL REQUIRED', `${outputs.totalFuelRequired.textContent} lbs`],], theme: 'grid', headStyles: { fillColor: [45, 55, 72] }, bodyStyles: { fontStyle: 'bold' }, didParseCell: function(data) { if (data.row.index === 6) { data.cell.styles.fillColor = '#1f2937'; data.cell.styles.textColor = '#fcd34d'; } } }); finalY = doc.lastAutoTable.finalY;
             const table = document.getElementById('cg-table-body'); let bodyData = []; table.querySelectorAll('tr').forEach(row => { let rowData = []; row.querySelectorAll('td').forEach(cell => { let cellText = cell.querySelector('input') ? cell.querySelector('input').value : cell.innerText; rowData.push(cellText); }); bodyData.push(rowData); });
-            if (finalY + 20 > doc.internal.pageSize.getHeight() - 30) { doc.addPage(); finalY = 10; }
-            doc.autoTable({ startY: finalY + 10, head: [['Item', 'Weight (lbs)', 'Arm (in)', 'Moment', '%MAC']], body: bodyData, theme: 'striped', headStyles: { fillColor: [45, 55, 72] }, styles: { fontSize: 8 }, columnStyles: { 0: { cellWidth: 60 }, 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' }, }, didParseCell: function(data) { const originalTable = document.getElementById('cg-table-body'); const originalRow = originalTable.querySelectorAll('tr')[data.row.index]; if (originalRow && originalRow.classList.contains('total-row')) { data.cell.styles.fillColor = '#1f2937'; data.cell.styles.textColor = '#fcd34d'; data.cell.styles.fontStyle = 'bold'; } } }); finalY = doc.lastAutoTable.finalY;
             
-            // Seat Configuration Table
-            if (finalY + 40 > doc.internal.pageSize.getHeight() - 30) { doc.addPage(); finalY = 10; }
-            doc.setFontSize(12); doc.setFont(undefined, 'bold'); doc.text('Seat Configuration Summary (kg)', 14, finalY + 10);
-            const seatConfigData = [];
-            const addRowIfNonZero = (label, value) => { const numValue = parseFloat(value) || 0; if (numValue > 0) { seatConfigData.push([label, `${numValue.toFixed(0)} kg`]); } };
-            addRowIfNonZero('Pilot', inputs.pilot.value);
-            addRowIfNonZero('Copilot', inputs.copilot.value);
-            addRowIfNonZero('Jumpseat (Engineer)', inputs.engineer.value);
-            addRowIfNonZero('Galley', inputs.galley.value);
-            addRowIfNonZero('Aft Lavatory', inputs.aftLavatory.value);
-            for (let i = 1; i <= 13; i++) { addRowIfNonZero(`Seat S${i}`, document.getElementById(`seat${i}`).value); }
-            doc.autoTable({ startY: finalY + 15, head: [['Seat/Component', 'Weight']], body: seatConfigData, theme: 'grid', headStyles: { fillColor: [45, 55, 72] }, columnStyles: { 1: { halign: 'right' } }, });
+            doc.autoTable({ startY: finalY + 10, head: [['Item', 'Weight (lbs)', 'Arm (in)', 'Moment', '%MAC']], body: bodyData, theme: 'striped', headStyles: { fillColor: [45, 55, 72] }, styles: { fontSize: 8 }, columnStyles: { 0: { cellWidth: 60 }, 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' }, }, didParseCell: function(data) { const originalTable = document.getElementById('cg-table-body'); const originalRow = originalTable.querySelectorAll('tr')[data.row.index]; if (originalRow && originalRow.classList.contains('total-row')) { data.cell.styles.fillColor = '#1f2937'; data.cell.styles.textColor = '#fcd34d'; data.cell.styles.fontStyle = 'bold'; } } }); 
             finalY = doc.lastAutoTable.finalY;
+
+            // --- Seat Layout Image ---
+            const seatLayoutElement = document.getElementById('seat-layout-container');
+            const canvas = await html2canvas(seatLayoutElement, { 
+                backgroundColor: '#111827', // Use a dark background similar to the app
+                scale: 2 // Increase scale for better resolution
+            });
+            const imgData = canvas.toDataURL('image/png');
+            const pdfImgWidth = 190; // Almost full page width
+            const pdfImgHeight = (canvas.height * pdfImgWidth) / canvas.width;
+
+            if (finalY + pdfImgHeight + 25 > doc.internal.pageSize.getHeight()) {
+                doc.addPage();
+                finalY = 10;
+            }
+
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.text('Seat Layout Configuration', 105, finalY + 15, { align: 'center' });
+            doc.addImage(imgData, 'PNG', 10, finalY + 20, pdfImgWidth, pdfImgHeight);
+            finalY += pdfImgHeight + 25; // Update finalY after adding the image
+            // --- End Seat Layout Image ---
 
             doc.setFontSize(11); doc.setFont(undefined, 'bold'); doc.text('Elevator Trim Tab Setting:', 14, finalY + 10); doc.setFont(undefined, 'normal'); doc.text(outputs.elevatorTrimResult.textContent, 65, finalY + 10);
             const chartCanvas = document.getElementById('cgEnvelopeChart'); const chartImage = chartCanvas.toDataURL('image/png', 1.0); const chartWidth = 80; const chartHeight = 80; const chartX = (doc.internal.pageSize.getWidth() - chartWidth) / 2;
